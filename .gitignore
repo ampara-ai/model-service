@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Environment config (copy from .env.example)
+.env
+
+modelo_onnx/
+modelo_onnx_int8/
+reranker_onnx_fp32/
+reranker_onnx_int8/
