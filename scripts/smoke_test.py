@@ -61,6 +61,29 @@ def main() -> None:
     resp = client.post("/embed", json={"text": "   "})
     check(resp.status_code == 400, f"status 400 (got {resp.status_code})")
 
+    # --- /embed_base ---
+    print("\n[POST /embed_base]")
+    t0 = time.perf_counter()
+    resp = client.post("/embed_base", json={"text": EMBED_TEXT})
+    latency = time.perf_counter() - t0
+    check(resp.status_code == 200, f"status 200 (got {resp.status_code})")
+    embedding_base = resp.json().get("embedding")
+    check(isinstance(embedding_base, list), "embedding is a list")
+    check(len(embedding_base) == 1024, f"embedding length == 1024 (got {len(embedding_base)})")
+    check(all(isinstance(v, float) for v in embedding_base), "all embedding values are float")
+    print(f"  dim={len(embedding_base)}  latency={latency:.3f}s")
+    # Cosine similarity vs fine-tuned embedding (should differ since models differ)
+    import numpy as np
+    v1 = np.array(embedding)
+    v2 = np.array(embedding_base)
+    cosine_sim = float(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
+    print(f"  cosine similarity vs /embed (finetuned): {cosine_sim:.4f}")
+
+    # --- /embed_base 400 on empty text ---
+    print("\n[POST /embed_base — empty text → 400]")
+    resp = client.post("/embed_base", json={"text": "   "})
+    check(resp.status_code == 400, f"status 400 (got {resp.status_code})")
+
     # --- /rerank ---
     print("\n[POST /rerank]")
     t0 = time.perf_counter()

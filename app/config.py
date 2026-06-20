@@ -14,7 +14,11 @@ class Settings(BaseSettings):
     reranker_model_dir_fp32: str = "reranker_onnx_fp32"
     reranker_model_dir_int8: str = "reranker_onnx_int8"
 
+    base_embedding_model_dir_fp32: str = "modelo_base_onnx"
+    base_embedding_model_dir_int8: str = "modelo_base_onnx_int8"
+
     embedding_max_length: int = 2048
+    embedding_base_max_length: int = 2048
     reranker_max_length: int = 1024
 
     onnx_intra_op_num_threads: int = 0
@@ -36,6 +40,11 @@ class Settings(BaseSettings):
     @property
     def reranker_model_dir(self) -> Path:
         d = self.reranker_model_dir_int8 if self.model_precision == "int8" else self.reranker_model_dir_fp32
+        return Path(d)
+
+    @property
+    def base_embedding_model_dir(self) -> Path:
+        d = self.base_embedding_model_dir_int8 if self.model_precision == "int8" else self.base_embedding_model_dir_fp32
         return Path(d)
 
 
