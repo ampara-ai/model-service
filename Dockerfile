@@ -25,9 +25,14 @@ COPY download_models.py ./
 COPY entrypoint.sh ./
 RUN chmod +x entrypoint.sh
 
-# Models directory — will be mounted as a named Docker volume
-# Create it here with correct ownership before switching to non-root user
-RUN mkdir -p /app/models
+# Runtime writable locations for the non-root user.
+# /app/models is mounted as a named Docker volume; /app/.cache is used by
+# Hugging Face and any library that follows XDG cache conventions.
+ENV HOME=/app
+ENV XDG_CACHE_HOME=/app/.cache
+ENV HF_HOME=/app/.cache/huggingface
+
+RUN mkdir -p /app/models /app/.cache
 
 # Non-root user for production security
 RUN useradd --uid 1000 --no-create-home --shell /bin/bash appuser \
