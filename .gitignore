@@ -19,3 +19,7 @@ modelo_base_onnx/
 modelo_base_onnx_int8/
 reranker_onnx_fp32/
 reranker_onnx_int8/
+
+# Local models directory (populated by download_models.py)
+models/
+!models/.gitkeep

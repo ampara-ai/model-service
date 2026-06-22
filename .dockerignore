@@ -1,0 +1,36 @@
+# Model folders — never bake into image; served from named volume at runtime
+modelo_onnx/
+modelo_onnx_int8/
+modelo_base_onnx/
+modelo_base_onnx_int8/
+reranker_onnx_fp32/
+reranker_onnx_int8/
+models/
+
+# Secrets — passed at runtime via env vars, never in the image
+.env
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+.venv/
+
+# Git metadata
+.git/
+.gitignore
+.gitattributes
+
+# Dev-only files
+.python-version
+scripts/
+
+# Docker files themselves
+Dockerfile
+.dockerignore
+docker-compose.yml

@@ -1,0 +1,37 @@
+services:
+  model-service:
+    image: model-service:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    volumes:
+      # Named volume — models downloaded on first run, reused on every restart
+      - model-data:/app/models
+    environment:
+      - MODEL_PRECISION=${MODEL_PRECISION:-int8}
+      - MODELS_DIR=/app/models
+      - HF_TOKEN=${HF_TOKEN}
+      - FORCE_DOWNLOAD=${FORCE_DOWNLOAD:-false}
+      - ONNX_INTRA_OP_NUM_THREADS=${ONNX_INTRA_OP_NUM_THREADS:-4}
+      - ONNX_INTER_OP_NUM_THREADS=${ONNX_INTER_OP_NUM_THREADS:-1}
+      - UVICORN_WORKERS=${UVICORN_WORKERS:-1}
+      - CORS_ORIGINS=${CORS_ORIGINS:-["*"]}
+    restart: unless-stopped
+    # INT8: 3 modelos × ~540 MB + overhead Python/tokenizers/buffers ≈ 4 GB
+    # FP32: cambiar a mem_limit: 8g, mem_reservation: 4g
+    mem_limit: 4g
+    mem_reservation: 2g
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      # Primera arrancada: esperar descarga completa antes de marcar como unhealthy
+      start_period: 300s
+
+volumes:
+  model-data:
+    driver: local
