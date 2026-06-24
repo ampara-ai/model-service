@@ -60,11 +60,11 @@ REQUIRED_FILES_PER_FOLDER = [
 
 # ─── Funciones ────────────────────────────────────────────────────────────────
 
-def validate_env() -> None:
-    """Valida variables de entorno requeridas antes de hacer nada."""
+def validate_env(*, require_hf_token: bool) -> None:
+    """Valida variables requeridas para verificar o descargar modelos."""
     errors = []
 
-    if not HF_TOKEN:
+    if require_hf_token and not HF_TOKEN:
         errors.append("HF_TOKEN no está configurado.")
 
     if PRECISION not in FOLDERS_BY_PRECISION:
@@ -136,7 +136,7 @@ def main() -> None:
     log.info(f"  Directorio: {MODELS_DIR}")
     log.info("=" * 60)
 
-    validate_env()
+    validate_env(require_hf_token=False)
 
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -160,6 +160,8 @@ def main() -> None:
     if FORCE_DOWNLOAD:
         log.info("FORCE_DOWNLOAD=true detectado. Forzando re-descarga.")
         marker.unlink(missing_ok=True)
+
+    validate_env(require_hf_token=True)
 
     # ── Descarga ──
     try:

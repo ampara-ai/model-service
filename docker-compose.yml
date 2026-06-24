@@ -32,6 +32,16 @@ services:
       # Primera arrancada: esperar descarga completa antes de marcar como unhealthy
       start_period: 300s
 
+    networks:
+      default:
+      rag_shared:
+        aliases:
+          - model-service
+
+networks:
+  rag_shared:
+    external: true
+
 volumes:
   model-data:
     driver: local
