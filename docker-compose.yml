@@ -39,8 +39,11 @@ services:
           - model-service
 
 networks:
+  # Sin external: true — el que arranque primero (este repo o backend) crea
+  # la red con este nombre fijo; el otro la reutiliza automáticamente. Ya no
+  # hace falta `docker network create rag_shared` a mano.
   rag_shared:
-    external: true
+    name: rag_shared
 
 volumes:
   model-data:
