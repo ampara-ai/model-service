@@ -41,7 +41,7 @@ All other variables have sensible defaults. See `.env.example` for the full list
 **Development** (auto-reload on file changes):
 
 ```bash
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+uv run uvicorn app.main:app --reload --reload-dir app --host 0.0.0.0 --port 8001
 ```
 
 **Production** (no reload):

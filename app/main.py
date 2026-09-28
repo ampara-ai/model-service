@@ -2,6 +2,7 @@ import logging
 import time
 from contextlib import asynccontextmanager
 
+import numpy as np
 import onnxruntime as ort
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,7 +12,10 @@ from app.embedder import AmparaEmbedder
 from app.reranker import AmparaReranker
 from app.schemas import EmbedRequest, EmbedResponse, RerankRequest, RerankResponse, RerankResult
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
+logging.basicConfig(
+    level=settings.log_level.upper(),
+    format="%(asctime)s %(levelname)s %(name)s — %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 
@@ -80,7 +84,18 @@ async def embed(request: EmbedRequest, req: Request) -> EmbedResponse:
     except Exception:
         logger.exception("Error en /embed")
         raise HTTPException(status_code=500, detail="Error interno del modelo")
-    logger.info("/embed — %.0f chars — %.3fs", len(request.text), time.perf_counter() - t0)
+    elapsed = time.perf_counter() - t0
+    logger.info("/embed — %.0f chars — %.3fs", len(request.text), elapsed)
+    logger.debug(
+        "/embed INPUT  : %r",
+        request.text[:120] + ("…" if len(request.text) > 120 else ""),
+    )
+    logger.debug(
+        "/embed OUTPUT : dim=%d  norm=%.6f  values[:5]=%s",
+        len(vector),
+        float(np.linalg.norm(vector)),
+        [round(float(v), 6) for v in vector[:5]],
+    )
     return EmbedResponse(embedding=vector.tolist())
 
 
@@ -94,7 +109,18 @@ async def embed_base(request: EmbedRequest, req: Request) -> EmbedResponse:
     except Exception:
         logger.exception("Error en /embed_base")
         raise HTTPException(status_code=500, detail="Error interno del modelo")
-    logger.info("/embed_base — %.0f chars — %.3fs", len(request.text), time.perf_counter() - t0)
+    elapsed = time.perf_counter() - t0
+    logger.info("/embed_base — %.0f chars — %.3fs", len(request.text), elapsed)
+    logger.debug(
+        "/embed_base INPUT  : %r",
+        request.text[:120] + ("…" if len(request.text) > 120 else ""),
+    )
+    logger.debug(
+        "/embed_base OUTPUT : dim=%d  norm=%.6f  values[:5]=%s",
+        len(vector),
+        float(np.linalg.norm(vector)),
+        [round(float(v), 6) for v in vector[:5]],
+    )
     return EmbedResponse(embedding=vector.tolist())
 
 
@@ -110,12 +136,18 @@ async def rerank(request: RerankRequest, req: Request) -> RerankResponse:
     except Exception:
         logger.exception("Error en /rerank")
         raise HTTPException(status_code=500, detail="Error interno del modelo")
-    logger.info("/rerank — %d docs — %.3fs", len(request.documents), time.perf_counter() - t0)
+    elapsed = time.perf_counter() - t0
+    logger.info("/rerank — %d docs — %.3fs", len(request.documents), elapsed)
     results = [
         RerankResult(index=i, score=float(scores[i]), text=request.documents[i])
         for i in range(len(request.documents))
     ]
     results.sort(key=lambda r: r.score, reverse=True)
+    logger.debug("/rerank INPUT query : %r", request.query[:120] + ("…" if len(request.query) > 120 else ""))
+    logger.debug("/rerank RANKED RESULTS:")
+    for rank, r in enumerate(results, start=1):
+        snippet = r.text[:80] + ("…" if len(r.text) > 80 else "")
+        logger.debug("  #%d  score=%.4f  idx=%d  %r", rank, r.score, r.index, snippet)
     return RerankResponse(results=results)
 
 

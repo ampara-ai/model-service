@@ -5,7 +5,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    # .env is shared with download_models.py and Docker, so it also contains
+    # downloader-only keys such as HF_TOKEN and FORCE_DOWNLOAD.
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     model_precision: Literal["fp32", "int8"] = "int8"
 
@@ -18,14 +20,12 @@ class Settings(BaseSettings):
     embedding_model_dir_int8: str = "modelo_onnx_int8"
     reranker_model_dir_fp32: str = "reranker_onnx_fp32"
     reranker_model_dir_int8: str = "reranker_onnx_int8"
-
     base_embedding_model_dir_fp32: str = "modelo_base_onnx"
     base_embedding_model_dir_int8: str = "modelo_base_onnx_int8"
 
     embedding_max_length: int = 2048
     embedding_base_max_length: int = 2048
     reranker_max_length: int = 1024
-
     onnx_intra_op_num_threads: int = 0
     onnx_inter_op_num_threads: int = 0
 
@@ -34,6 +34,9 @@ class Settings(BaseSettings):
 
     reranker_batch_size: int = 16
     uvicorn_workers: int = 1
+
+    # Nivel de log: INFO (producción) o DEBUG (verbose — loguea inputs/outputs de cada request)
+    log_level: str = "INFO"
 
     # Use ["*"] for development; restrict to specific origins in production
     cors_origins: list[str] = ["*"]
@@ -52,7 +55,6 @@ class Settings(BaseSettings):
     def base_embedding_model_dir(self) -> Path:
         d = self.base_embedding_model_dir_int8 if self.model_precision == "int8" else self.base_embedding_model_dir_fp32
         return Path(self.models_dir) / d
-
 
 settings = Settings()
 
