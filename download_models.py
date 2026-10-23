@@ -50,10 +50,9 @@ FOLDERS_BY_PRECISION: dict[str, list[str]] = {
     ],
 }
 
-# Archivos que deben existir en cada carpeta de modelo para considerarla válida
-REQUIRED_FILES_PER_FOLDER = [
-    "model.onnx",
-    "config.json",
+# Archivos mínimos para cargar los tokenizers. El nombre del grafo ONNX puede
+# variar según el exportador (por ejemplo, model.onnx o model_quantized.onnx).
+REQUIRED_TOKENIZER_FILES = [
     "tokenizer.json",
     "tokenizer_config.json",
 ]
@@ -81,8 +80,9 @@ def validate_env(*, require_hf_token: bool) -> None:
 
 def verify_models(folders: list[str]) -> bool:
     """
-    Verifica que cada carpeta exista y contenga todos los archivos requeridos
-    con tamaño mayor a 0. Retorna True solo si todo está correcto.
+    Verifica que cada carpeta contenga exactamente un grafo ONNX no vacío y
+    los archivos mínimos del tokenizer. También valida cualquier archivo de
+    datos externos que acompañe al grafo.
     """
     for folder in folders:
         folder_path = MODELS_DIR / folder
@@ -91,9 +91,19 @@ def verify_models(folders: list[str]) -> bool:
             log.warning(f"Carpeta no encontrada: {folder_path}")
             return False
 
-        for filename in REQUIRED_FILES_PER_FOLDER:
-            file_path = folder_path / filename
+        onnx_files = list(folder_path.glob("*.onnx"))
+        if len(onnx_files) != 1:
+            log.warning(
+                f"Se esperaba exactamente un archivo .onnx en {folder_path}; "
+                f"se encontraron {len(onnx_files)}"
+            )
+            return False
 
+        files_to_check = [onnx_files[0]]
+        files_to_check.extend(folder_path.glob("*.onnx.data"))
+        files_to_check.extend(folder_path / filename for filename in REQUIRED_TOKENIZER_FILES)
+
+        for file_path in files_to_check:
             if not file_path.exists():
                 log.warning(f"Archivo faltante: {file_path}")
                 return False
@@ -118,7 +128,6 @@ def download_models(folders: list[str]) -> None:
         local_dir=str(MODELS_DIR),
         allow_patterns=allow_patterns,
         token=HF_TOKEN,
-        local_dir_use_symlinks=False,  # archivos reales, no symlinks — importante en Docker
     )
 
 
@@ -144,13 +153,15 @@ def main() -> None:
     marker  = get_marker_path()
 
     # ── Verificación rápida: ¿ya están descargados y son válidos? ──
-    if not FORCE_DOWNLOAD and marker.exists():
-        log.info("Marker de descarga encontrado. Verificando integridad...")
-
+    # Se verifican siempre, incluso si el marker no existe. Esto evita
+    # reemplazar un export local válido por la versión remota anterior.
+    if not FORCE_DOWNLOAD:
+        log.info("Verificando integridad de los modelos existentes...")
         if verify_models(folders):
             log.info("Modelos verificados correctamente. Saltando descarga.")
+            marker.touch()
             return
-        else:
+        if marker.exists():
             log.warning(
                 "Marker existe pero la verificación falló "
                 "(descarga previa incompleta). Re-descargando..."
